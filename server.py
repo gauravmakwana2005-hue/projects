@@ -3,6 +3,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# Store logs in memory
 logs = []
 
 
@@ -10,31 +11,38 @@ logs = []
 def home():
     return """
     <h2>Safe C2 Server</h2>
-    <p>Use /receive to collect data</p>
-    <p>Use /logs to view logs</p>
+    <p>POST data to <b>/receive</b></p>
+    <p>View saved logs at <b>/logs</b></p>
     """
 
 
 @app.route("/receive", methods=["POST"])
 def receive_data():
     try:
-        data = request.json
+        data = request.get_json(force=True, silent=True)
         logs.append({
-            "time": str(datetime.now()),
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "data": data
         })
-        return jsonify({"status": "received"})
-    except:
-        return jsonify({"status": "error"})
+        return jsonify({"status": True, "message": "Data received"})
+    except Exception as e:
+        return jsonify({"status": False, "error": str(e)})
 
 
-@app.route("/logs")
+@app.route("/logs", methods=["GET"])
 def show_logs():
     html = "<h2>Received Logs</h2><hr>"
+
     for item in logs:
-        html += f"<p><b>{item['time']}</b><br>{item['data']}<br><hr></p>"
+        html += f"""
+        <p><b>{item['time']}</b><br>
+        {item['data']}
+        <br><hr></p>
+        """
+
     return html
 
 
 if __name__ == "__main__":
+    # Render ignores this, but useful for local testing
     app.run(host="0.0.0.0", port=5000)
